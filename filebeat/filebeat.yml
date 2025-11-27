@@ -1,0 +1,15 @@
+filebeat.modules:
+  - module: mongodb
+    log:
+      enabled: true
+      var.paths: ["/var/log/mongodb/mongod.log"]
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  username: "elastic"
+  password: "changeme"
+
+setup.kibana:
+  host: "kibana:5601"
+
+logging.to_files: false
