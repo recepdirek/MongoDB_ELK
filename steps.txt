@@ -1,0 +1,139 @@
+
+1- 
+
+sudo dnf install -y java-11-openjdk
+
+2. 
+
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+cat <<EOF | sudo tee /etc/yum.repos.d/elastic.repo
+[elastic-8.x]
+name=Elastic repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+
+3. 
+sudo dnf install -y elasticsearch
+sudo systemctl enable --now elasticsearch
+
+
+4. 
+
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -a
+
+FV9STa-cPsBw_h1T8iau
+
+
+5. 
+
+sudo dnf install -y kibana
+
+
+6. 
+
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system -a
+
+
+
+7.
+
+vi /etc/kibana/kibana.yml
+
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["https://localhost:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "QD36xQUoDw8U=B7p=3EI"
+
+
+
+8. disable all ssl setting to false in elasticsearch.yml file and then restart the elasticsearch service
+
+
+# Disable security for POC
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# Make it listen on localhost only
+network.host: 127.0.0.1
+http.port: 9200
+
+
+
+
+9.
+sudo systemctl enable --now kibana
+
+
+tunnel :
+
+ssh -L 5601:localhost:5601 user@IPaddress
+
+http://localhost:5601
+
+
+
+10.
+
+sudo dnf install -y logstash
+
+
+11. 
+
+sudo vi /etc/logstash/conf.d/mongodb.conf
+
+
+
+
+
+
+
+12. 
+
+sudo dnf install -y filebeat
+
+
+
+
+13.
+
+sudo filebeat modules enable mongodb
+
+
+14.
+
+sudo vi /etc/filebeat/modules.d/mongodb.yml
+
+
+- module: mongodb
+  log:
+    enabled: true
+    var.paths:
+      - /var/log/mongodb/mongod.log
+
+
+
+15. Configure Filebeat to send logs to Logstash
+
+sudo vi /etc/filebeat/filebeat.yml
+
+
+output.logstash:
+  hosts: ["<elk-server-ip>:5044"]
+
+
+#output.elasticsearch:
+#  hosts: ["localhost:9200"]
+
+
+
+16. sudo filebeat setup -e
+
+
+17. sudo systemctl enable --now filebeat
+
