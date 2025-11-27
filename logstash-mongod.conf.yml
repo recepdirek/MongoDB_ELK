@@ -1,0 +1,47 @@
+# /etc/logstash/conf.d/mongodb.conf
+
+input {
+  beats {
+    port => 5044
+  }
+}
+
+filter {
+   json {
+     source => "message"
+     target => "MessageParsed"
+   }
+
+   # Only process profiler logs that contain either COLLSCAN or IXSCAN
+   if [MessageParsed][attr][planSummary] =~ /COLLSCAN/ or [MessageParsed][attr][planSummary] =~ /IXSCAN/ {
+
+     # Add the cluster field (host name)
+     mutate {
+       add_field => { "cluster" => "%{[host][name]}" }
+     }
+
+     # Clean the cluster field (remove suffix after the last '-')
+     mutate {
+       gsub => [
+         "cluster", ".(?=[^-]*$)", ""
+       ]
+     }
+
+     # Add the command field (for detailed query info)
+     mutate {
+       add_field => { "command" => "%{[MessageParsed][attr][command]}" }
+     }
+   } else {
+     # Drop logs that are not related to COLLSCAN or IXSCAN
+     drop { }
+   }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+	user => "elastic"
+    password => "FV9STa-cPsBw_h1T8iau"
+    index => "mongodb-%{[cluster]}-%{+YYYY.MM.dd}"
+  }
+}
